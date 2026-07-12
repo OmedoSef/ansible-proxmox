@@ -1,2 +1,14 @@
 ---
 requires_ansible: ">=2.16.0"
+action_groups:
+  # Lets users set connection/auth options once via module_defaults instead
+  # of repeating them on every task:
+  #   module_defaults:
+  #     group/omedosef.proxmox.proxmox:
+  #       api_host: proxmox.example.com
+  #       ...
+  # Any option still set directly on a task takes precedence over the group
+  # default. Add every new module that accepts the shared
+  # proxmox_auth_argument_spec() options to this list.
+  proxmox:
+    - version_info

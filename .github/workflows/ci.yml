@@ -1,0 +1,65 @@
+---
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dev dependencies
+        run: pip install -r requirements-dev.txt
+
+      - uses: pre-commit/action@v3.0.1
+
+  units:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out collection at the expected collection path
+        uses: actions/checkout@v4
+        with:
+          path: ansible_collections/omedosef/proxmox
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dev dependencies
+        run: pip install -r requirements-dev.txt
+        working-directory: ansible_collections/omedosef/proxmox
+
+      - name: Run unit tests
+        run: ansible-test units --python 3.12
+        working-directory: ansible_collections/omedosef/proxmox
+
+  sanity:
+    name: Sanity tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out collection at the expected collection path
+        uses: actions/checkout@v4
+        with:
+          path: ansible_collections/omedosef/proxmox
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ansible-core
+        run: pip install "ansible-core>=2.17"
+
+      - name: Run sanity tests
+        run: ansible-test sanity --python 3.12
+        working-directory: ansible_collections/omedosef/proxmox

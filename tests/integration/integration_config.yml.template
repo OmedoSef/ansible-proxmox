@@ -1,0 +1,40 @@
+---
+# Copy this file to integration_config.yml (already gitignored) and fill in
+# the connection details of a real, disposable Proxmox VE instance. Never
+# commit real credentials.
+#
+# Don't have a spare Proxmox VE host to test against? OmedoSef/ansible-proxmox-qemu-install
+# provisions a throwaway one inside a local QEMU/KVM VM:
+# https://github.com/OmedoSef/ansible-proxmox-qemu-install
+proxmox_api_host: proxmox.example.com
+proxmox_api_port: 8006
+proxmox_api_user: root@pam
+proxmox_api_password: change-me
+# Optional: also set an API token to additionally exercise the
+# version_info_token_auth target. Leave both commented out to skip it.
+# proxmox_api_token_id: ansible
+# proxmox_api_token_secret: change-me
+proxmox_validate_certs: false
+
+# Optional: also set an SSH user to additionally exercise the
+# version_info_ssh_auth target (api_backend=ssh_paramiko). Leave
+# proxmox_ssh_user commented out to skip it. Provide either
+# proxmox_ssh_password or proxmox_ssh_private_key_file (or neither, to fall
+# back to an SSH agent / the control node's default keys).
+# proxmox_ssh_user: root
+# proxmox_ssh_password: change-me
+# proxmox_ssh_private_key_file: ~/.ssh/id_ed25519
+# proxmox_ssh_sudo: false
+
+# Optional: also set a target host to additionally exercise the
+# version_info_local_auth target (api_backend=local, delegates to this host
+# over SSH and runs pvesh directly there - the recommended pattern, see
+# "Connecting to Proxmox" in the README). Leave proxmox_local_host commented
+# out to skip it. Provide either proxmox_local_ssh_password or
+# proxmox_local_ssh_private_key_file (or neither, to fall back to an SSH
+# agent / the control node's default keys).
+# proxmox_local_host: proxmox.example.com
+# proxmox_local_ssh_user: root
+# proxmox_local_ssh_password: change-me
+# proxmox_local_ssh_private_key_file: ~/.ssh/id_ed25519
+# proxmox_local_become: true

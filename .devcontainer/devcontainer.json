@@ -7,6 +7,8 @@
   "remoteEnv": {
     "ANSIBLE_COLLECTIONS_PATH": "${containerEnv:HOME}/.ansible/collections:/usr/share/ansible/collections"
   },
+  "workspaceMount": "source=${localWorkspaceFolder},target=/home/vscode/.ansible/collections/ansible_collections/omedosef/proxmox,type=bind,consistency=cached",
+  "workspaceFolder": "/home/vscode/.ansible/collections/ansible_collections/omedosef/proxmox",
   "postCreateCommand": "bash .devcontainer/post-create.sh",
   "customizations": {
     "vscode": {
@@ -15,7 +17,8 @@
         "redhat.vscode-yaml",
         "ms-python.python",
         "ms-python.vscode-pylance",
-        "timonwong.shellcheck"
+        "timonwong.shellcheck",
+        "github.vscode-github-actions"
       ],
       "settings": {
         "python.defaultInterpreterPath": "/usr/local/bin/python",

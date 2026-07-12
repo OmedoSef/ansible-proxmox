@@ -1,0 +1,111 @@
+---
+name: Release
+
+# Triggered by pushing a "vX.Y.Z" tag on a commit already prepared by the
+# "Prepare Release" workflow (galaxy.yml bumped, changelog generated). Runs
+# the full test suite, builds the collection, creates a GitHub release, and
+# - after manual approval on the "galaxy-publish" environment - publishes it
+# to Ansible Galaxy.
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    name: Build and create GitHub release
+    needs: test
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Derive version from tag
+        id: version
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify galaxy.yml version matches the tag
+        run: |
+          galaxy_version=$(grep '^version:' galaxy.yml | awk '{print $2}')
+          if [ "${galaxy_version}" != "${{ steps.version.outputs.version }}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} != galaxy.yml version (${galaxy_version}). Run 'Prepare Release', merge its PR, then tag that commit."
+            exit 1
+          fi
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ansible-core
+        run: pip install "ansible-core>=2.17"
+
+      - name: Build the collection
+        run: ansible-galaxy collection build --output-path dist/
+
+      - name: Extract changelog section for this release
+        id: changelog
+        run: |
+          python3 <<'PYEOF' > /tmp/notes.txt
+          import re
+          version = "${{ steps.version.outputs.version }}"
+          content = open("CHANGELOG.rst").read()
+          pattern = rf"^v{re.escape(version)}\n=+\n(.*?)(?=\nv[\d.]+\n=+\n|\Z)"
+          match = re.search(pattern, content, re.MULTILINE | re.DOTALL)
+          print((match.group(1).strip() if match else "See CHANGELOG.rst."))
+          PYEOF
+          {
+            echo "notes<<CHANGELOG_EOF"
+            cat /tmp/notes.txt
+            echo "CHANGELOG_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            dist/*.tar.gz \
+            --title "${GITHUB_REF_NAME}" \
+            --notes "${{ steps.changelog.outputs.notes }}"
+
+      - name: Upload build artifact for the publish job
+        uses: actions/upload-artifact@v4
+        with:
+          name: collection-tarball
+          path: dist/*.tar.gz
+          retention-days: 7
+
+  publish:
+    name: Publish to Ansible Galaxy
+    needs: release
+    runs-on: ubuntu-latest
+    # Requires a "galaxy-publish" environment configured under
+    # Settings > Environments with at least one required reviewer: Galaxy
+    # publishes can't be undone or overwritten, so a human confirms this
+    # specific step even though everything before it is fully automated.
+    environment: galaxy-publish
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: collection-tarball
+          path: dist
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ansible-core
+        run: pip install "ansible-core>=2.17"
+
+      - name: Publish to Ansible Galaxy
+        run: ansible-galaxy collection publish dist/*.tar.gz --api-key "${{ secrets.GALAXY_API_KEY }}"

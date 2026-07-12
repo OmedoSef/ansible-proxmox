@@ -1,0 +1,65 @@
+---
+- name: Skip SSH backend tests when no SSH target user is configured
+  when: proxmox_ssh_user is not defined
+  block:
+    - name: Explain why this target is being skipped
+      ansible.builtin.debug:
+        msg: >-
+          Skipping: proxmox_ssh_user is not set in
+          tests/integration/integration_config.yml.
+
+    - name: End the play early
+      ansible.builtin.meta: end_play
+
+- name: Test SSH backend with password authentication
+  when: proxmox_ssh_password is defined
+  block:
+    - name: Retrieve the Proxmox VE version over SSH using a password
+      omedosef.proxmox.version_info:
+        api_host: "{{ proxmox_api_host }}"
+        api_backend: ssh_paramiko
+        api_user: "{{ proxmox_ssh_user }}"
+        api_password: "{{ proxmox_ssh_password }}"
+        api_sudo: "{{ proxmox_ssh_sudo | default(false) }}"
+      register: password_result
+
+    - name: Assert the API returned version information (password auth)
+      ansible.builtin.assert:
+        that:
+          - password_result is not changed
+          - password_result.version.version is defined
+          - password_result.version.version | length > 0
+
+- name: Explain why the SSH password authentication test is being skipped
+  ansible.builtin.debug:
+    msg: >-
+      Skipping SSH password authentication test: proxmox_ssh_password is not
+      set in tests/integration/integration_config.yml.
+  when: proxmox_ssh_password is not defined
+
+- name: Test SSH backend with private key authentication
+  when: proxmox_ssh_private_key_file is defined
+  block:
+    - name: Retrieve the Proxmox VE version over SSH using a private key
+      omedosef.proxmox.version_info:
+        api_host: "{{ proxmox_api_host }}"
+        api_backend: ssh_paramiko
+        api_user: "{{ proxmox_ssh_user }}"
+        api_ssh_private_key_file: "{{ proxmox_ssh_private_key_file }}"
+        api_sudo: "{{ proxmox_ssh_sudo | default(false) }}"
+      register: key_result
+
+    - name: Assert the API returned version information (private key auth)
+      ansible.builtin.assert:
+        that:
+          - key_result is not changed
+          - key_result.version.version is defined
+          - key_result.version.version | length > 0
+
+- name: Explain why the SSH private key authentication test is being skipped
+  ansible.builtin.debug:
+    msg: >-
+      Skipping SSH private key authentication test:
+      proxmox_ssh_private_key_file is not set in
+      tests/integration/integration_config.yml.
+  when: proxmox_ssh_private_key_file is not defined

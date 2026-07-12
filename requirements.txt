@@ -1,3 +1,5 @@
 # Runtime dependencies required by the collection's modules and inventory plugin.
 proxmoxer>=2.0
 requests>=2.31
+# Only required when using api_backend=ssh_paramiko (see plugins/module_utils/proxmox.py).
+paramiko>=3.0

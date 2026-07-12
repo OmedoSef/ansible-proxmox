@@ -1,0 +1,64 @@
+---
+- name: Skip local backend test when no target host is configured
+  when: proxmox_local_host is not defined
+  block:
+    - name: Explain why this target is being skipped
+      ansible.builtin.debug:
+        msg: >-
+          Skipping: proxmox_local_host is not set in
+          tests/integration/integration_config.yml.
+
+    - name: End the play early
+      ansible.builtin.meta: end_play
+
+# Delegates to the real Proxmox node over SSH (ad-hoc connection vars, no
+# static inventory entry needed) so the module actually runs there, then
+# calls it with api_backend=local - the pattern documented in "Connecting to
+# Proxmox" in the README and demonstrated in
+# playbooks/examples/version_info_local.yml.
+- name: Exercise api_backend=local on the real Proxmox node
+  delegate_to: "{{ proxmox_local_host }}"
+  become: "{{ proxmox_local_become | default(true) }}"
+  vars:
+    ansible_user: "{{ proxmox_local_ssh_user | default('root') }}"
+    ansible_ssh_private_key_file: "{{ proxmox_local_ssh_private_key_file | default(omit) }}"
+    ansible_password: "{{ proxmox_local_ssh_password | default(omit) }}"
+    # ansible-test's own generated inventory sets ansible_python_interpreter
+    # to a deliberately broken placeholder on "testhost" to force explicit
+    # configuration; that leaks into this delegated (non-inventory) host
+    # unless overridden here.
+    ansible_python_interpreter: auto_silent
+  block:
+    - name: Ensure pip is installed on the Proxmox node
+      ansible.builtin.apt:
+        name: python3-pip
+        state: present
+      # A fresh Proxmox VE install has no pip at all (Debian's minimal base).
+      # Deliberately not using update_cache=true: a fresh install's apt
+      # sources still point at the paid "enterprise" repository, which
+      # returns 401 without a subscription and would fail the whole task on
+      # `apt update`. If python3-pip isn't already resolvable from the
+      # image's initial package lists, disable pve-enterprise.list and add
+      # the no-subscription repository first (standard Proxmox VE post-install
+      # step, see https://pve.proxmox.com/wiki/Package_Repositories).
+
+    - name: Ensure proxmoxer is importable on the Proxmox node's Python interpreter
+      ansible.builtin.pip:
+        name: proxmoxer
+        state: present
+        extra_args: --break-system-packages
+      # Debian 12+/Proxmox VE 8+ mark the system Python as "externally
+      # managed" (PEP 668); --break-system-packages is safe here since
+      # proxmoxer has no heavy/compiled dependencies of its own.
+
+    - name: Retrieve the Proxmox VE version by running pvesh locally on the node
+      omedosef.proxmox.version_info:
+        api_backend: local
+      register: result
+
+    - name: Assert the API returned version information
+      ansible.builtin.assert:
+        that:
+          - result is not changed
+          - result.version.version is defined
+          - result.version.version | length > 0

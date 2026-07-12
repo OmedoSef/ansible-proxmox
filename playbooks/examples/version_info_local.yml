@@ -1,0 +1,44 @@
+---
+# Recommended pattern for running collection modules against a Proxmox VE
+# node you already manage with Ansible: target it normally (inventory,
+# ansible_user, SSH keys, become) and use api_backend=local so the module
+# runs pvesh directly on the node instead of opening its own connection.
+#
+# Usage: ansible-playbook -i your_inventory playbooks/examples/version_info_local.yml
+- name: Report the Proxmox VE version of each node
+  hosts: proxmox_nodes
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Ensure pip is installed on the node
+      ansible.builtin.apt:
+        name: python3-pip
+        state: present
+      # A fresh Proxmox VE install has no pip at all (Debian's minimal base).
+      # Deliberately not using update_cache=true: a fresh install's apt
+      # sources still point at the paid "enterprise" repository, which
+      # returns 401 without a subscription and would fail the whole task on
+      # `apt update`. If python3-pip isn't already resolvable from the
+      # image's initial package lists, disable pve-enterprise.list and add
+      # the no-subscription repository first (standard Proxmox VE post-install
+      # step, see https://pve.proxmox.com/wiki/Package_Repositories).
+
+    - name: Ensure proxmoxer is importable on this node's Python interpreter
+      ansible.builtin.pip:
+        name: proxmoxer
+        state: present
+        extra_args: --break-system-packages
+      # Debian 12+/Proxmox VE 8+ mark the system Python as "externally
+      # managed" (PEP 668); --break-system-packages is safe here since
+      # proxmoxer has no heavy/compiled dependencies of its own.
+      # api_backend=local still imports proxmoxer even though it never makes
+      # an HTTP call, so this needs to run on the node, not the control node.
+
+    - name: Get the Proxmox VE version
+      omedosef.proxmox.version_info:
+        api_backend: local
+      register: proxmox_version
+
+    - name: Show the version
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} is running Proxmox VE {{ proxmox_version.version.version }}"

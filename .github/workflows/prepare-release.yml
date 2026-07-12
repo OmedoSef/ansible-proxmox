@@ -1,0 +1,75 @@
+---
+name: Prepare Release
+
+# Manual first step of the release process: bumps galaxy.yml, turns the
+# accumulated changelog fragments into a CHANGELOG.rst entry, and opens a PR
+# for review. Once that PR is merged, push a "vX.Y.Z" tag matching the
+# version below to trigger release.yml (build, test, GitHub release, Galaxy
+# publish). Tags are immutable, so this step must happen *before* tagging -
+# see the "Releasing" section in README.md.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: >-
+          New version to release, X.Y.Z format, no "v" prefix (must match
+          the tag you push afterwards, e.g. version 0.2.0 -> tag v0.2.0)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate version format
+        run: |
+          if ! [[ "${{ inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Version must be in X.Y.Z semver format (no 'v' prefix), got: ${{ inputs.version }}"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dev dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Bump galaxy.yml version
+        run: |
+          sed -i "s/^version: .*/version: ${{ inputs.version }}/" galaxy.yml
+          grep '^version:' galaxy.yml
+
+      - name: Generate the changelog entry for this release
+        run: antsibull-changelog release --version "${{ inputs.version }}"
+
+      - name: Commit and push the release branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "release/${{ inputs.version }}"
+          git add -A galaxy.yml CHANGELOG.rst changelogs/
+          git commit -m "chore: prepare release ${{ inputs.version }}"
+          git push origin "release/${{ inputs.version }}"
+
+      - name: Open a pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr create \
+            --title "Release ${{ inputs.version }}" \
+            --base main \
+            --head "release/${{ inputs.version }}" \
+            --body "Automated release preparation for \`${{ inputs.version }}\`.
+
+          Review \`galaxy.yml\` and \`CHANGELOG.rst\` below, then merge this PR.
+          Once merged, push a tag named \`v${{ inputs.version }}\` on the
+          resulting commit to trigger build/test/publish (see
+          [release.yml](../actions/workflows/release.yml))."

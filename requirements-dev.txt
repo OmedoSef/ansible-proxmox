@@ -6,6 +6,7 @@ yamllint>=1.35
 antsibull-changelog>=0.29
 pytest>=8.0
 pytest-mock>=3.14
+pytest-xdist>=3.6
 pre-commit>=4.0
 
 -r requirements.txt

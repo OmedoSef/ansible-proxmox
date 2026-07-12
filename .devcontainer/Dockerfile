@@ -22,4 +22,13 @@ RUN pip install --no-cache-dir --upgrade pip \
 RUN scripts_dir="$(python -c 'import sysconfig; print(sysconfig.get_path("scripts"))')" \
     && for f in "${scripts_dir}"/*; do ln -sf "$f" "/usr/local/bin/$(basename "$f")"; done
 
+# devcontainer.json bind-mounts the workspace at
+# ~/.ansible/collections/ansible_collections/omedosef/proxmox (the physical
+# path ansible-test requires). Docker auto-creates missing bind mount parent
+# directories as root, which would leave ~/.ansible unwritable by vscode
+# (e.g. ansible-lint's ~/.ansible/tmp). Pre-create the tree with the right
+# ownership so only the leaf "proxmox" directory gets replaced by the mount.
+RUN mkdir -p /home/vscode/.ansible/collections/ansible_collections/omedosef/proxmox \
+    && chown -R vscode:vscode /home/vscode/.ansible
+
 USER vscode

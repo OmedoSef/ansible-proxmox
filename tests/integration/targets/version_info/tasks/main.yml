@@ -1,0 +1,16 @@
+---
+- name: Retrieve the Proxmox VE version using password authentication
+  omedosef.proxmox.version_info:
+    api_host: "{{ proxmox_api_host }}"
+    api_port: "{{ proxmox_api_port | default(8006) }}"
+    api_user: "{{ proxmox_api_user }}"
+    api_password: "{{ proxmox_api_password }}"
+    validate_certs: "{{ proxmox_validate_certs | default(false) }}"
+  register: result
+
+- name: Assert the API returned version information
+  ansible.builtin.assert:
+    that:
+      - result is not changed
+      - result.version.version is defined
+      - result.version.version | length > 0

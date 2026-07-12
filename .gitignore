@@ -9,6 +9,8 @@ venv/
 *.retry
 tests/output/
 .ansible/
+tests/integration/integration_config.yml
+tests/integration/inventory
 
 # Collection build artifacts
 *.tar.gz
