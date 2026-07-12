@@ -1,0 +1,45 @@
+---
+name: Feature request
+description: Suggest a new module, plugin, or option for this collection
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Thanks for the suggestion — check the
+        [Roadmap](https://github.com/OmedoSef/ansible-proxmox#roadmap) first
+        for what's already planned.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - QEMU VM modules
+        - LXC container modules
+        - Node / cluster modules
+        - User / permission modules
+        - Dynamic inventory plugin
+        - Existing module (version_info)
+        - Other / not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: What are you trying to do?
+      description: Describe the use case / problem, not just the solution.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: >-
+        What should the module/option do? Link to the relevant Proxmox API
+        endpoint if you know it.
+    validations:
+      required: false
