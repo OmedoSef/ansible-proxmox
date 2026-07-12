@@ -219,22 +219,28 @@ pre-commit run --all-files
 
 ## Releasing
 
-Releases are cut in two steps, split across two workflows because a git tag
-is immutable and can't be amended after the fact:
+Releases are cut in three steps, split across three workflows because a git
+tag is immutable and can't be amended after the fact - the tag can only be
+created once the release-prep commit actually exists on `main`:
 
 1. **[Prepare Release](.github/workflows/prepare-release.yml)** (manual —
    Actions tab → "Prepare Release" → Run workflow, enter the new version,
    e.g. `0.2.0`). Bumps `galaxy.yml`, turns the accumulated
    `changelogs/fragments/*.yml` into a `CHANGELOG.rst` entry via
-   `antsibull-changelog release`, and opens a PR. Review the generated
-   changelog, then merge it.
-2. **Tag the merge commit**: `git tag v0.2.0 <commit> && git push origin v0.2.0`
-   (the `v` prefix is required; the version after it must match `galaxy.yml`
-   exactly). This triggers **[Release](.github/workflows/release.yml)**:
-   runs the full CI suite (lint, units, sanity), builds the collection,
-   creates a GitHub release (notes taken from the matching `CHANGELOG.rst`
-   section, tarball attached), then - after manual approval - publishes to
-   Ansible Galaxy.
+   `antsibull-changelog release`, and opens a PR from a `release/0.2.0`
+   branch. Review the generated changelog, then merge it.
+2. **[Tag Release](.github/workflows/tag-release.yml)** (automatic). Fires
+   the moment that PR is merged: reads the version back out of `galaxy.yml`
+   on the merge commit, double-checks it matches the `release/0.2.0` branch
+   name, then creates and pushes the `v0.2.0` tag on that commit.
+3. That tag push triggers **[Release](.github/workflows/release.yml)**: runs
+   the full CI suite (lint, units, sanity), builds the collection, creates a
+   GitHub release (notes taken from the matching `CHANGELOG.rst` section,
+   tarball attached), then - after manual approval - publishes to Ansible
+   Galaxy.
+
+The only manual steps are reviewing/merging the release-prep PR and
+approving the final Galaxy publish; everything in between is automatic.
 
 One-time repository setup required for this to work:
 
@@ -249,8 +255,9 @@ One-time repository setup required for this to work:
   now that your account is linked to GitHub. Scoping it to the environment
   means only the `publish` job can ever see it, and GitHub won't inject it
   until the required reviewer approves.
-- "Allow GitHub Actions to create pull requests" enabled (Settings → Actions
-  → General), needed by `prepare-release.yml`.
+- "Allow GitHub Actions to create and approve pull requests" enabled
+  (Settings → Actions → General → Workflow permissions), needed by
+  `prepare-release.yml`.
 
 ## Issues & Support
 

@@ -1,0 +1,53 @@
+---
+name: Tag Release
+
+# Runs automatically when a "release/X.Y.Z" PR (opened by prepare-release.yml)
+# is merged into main: creates and pushes the "vX.Y.Z" tag for that merge
+# commit, which in turn triggers release.yml. Tags can't be created earlier
+# than this (e.g. from within prepare-release.yml itself), since the merge
+# commit doesn't exist until a human actually merges the PR.
+#
+# This closes the loop so the only manual steps left in the release process
+# are reviewing/merging the release-prep PR and approving the Galaxy publish.
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    if: >-
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'release/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+
+      - name: Read version from galaxy.yml
+        id: version
+        run: |
+          version=$(grep '^version:' galaxy.yml | awk '{print $2}')
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify the release branch name matches galaxy.yml
+        run: |
+          branch_version="${{ github.event.pull_request.head.ref }}"
+          branch_version="${branch_version#release/}"
+          if [ "${branch_version}" != "${{ steps.version.outputs.version }}" ]; then
+            echo "::error::Branch release/${branch_version} doesn't match galaxy.yml version (${{ steps.version.outputs.version }})."
+            exit 1
+          fi
+
+      - name: Create and push the tag
+        run: |
+          tag="v${{ steps.version.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${tag}" -m "Release ${tag}" "${{ github.event.pull_request.merge_commit_sha }}"
+          git push origin "${tag}"

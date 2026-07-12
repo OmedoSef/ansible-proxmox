@@ -3,18 +3,16 @@ name: Prepare Release
 
 # Manual first step of the release process: bumps galaxy.yml, turns the
 # accumulated changelog fragments into a CHANGELOG.rst entry, and opens a PR
-# for review. Once that PR is merged, push a "vX.Y.Z" tag matching the
-# version below to trigger release.yml (build, test, GitHub release, Galaxy
-# publish). Tags are immutable, so this step must happen *before* tagging -
-# see the "Releasing" section in README.md.
+# for review. Merging that PR triggers tag-release.yml, which tags the merge
+# commit automatically and in turn triggers release.yml (build, test, GitHub
+# release, Galaxy publish). See the "Releasing" section in README.md.
 
 on:
   workflow_dispatch:
     inputs:
       version:
         description: >-
-          New version to release, X.Y.Z format, no "v" prefix (must match
-          the tag you push afterwards, e.g. version 0.2.0 -> tag v0.2.0)
+          New version to release, X.Y.Z format, no "v" prefix
         required: true
         type: string
 
@@ -72,7 +70,9 @@ jobs:
             --head "release/${{ inputs.version }}" \
             --body "Automated release preparation for \`${{ inputs.version }}\`.
 
-          Review \`galaxy.yml\` and \`CHANGELOG.rst\` below, then merge this PR.
-          Once merged, push a tag named \`v${{ inputs.version }}\` on the
-          resulting commit to trigger build/test/publish (see
+          Review \`galaxy.yml\` and \`CHANGELOG.rst\` below, then merge this
+          PR. Merging it automatically tags the resulting commit as
+          \`v${{ inputs.version }}\` (see
+          [tag-release.yml](../actions/workflows/tag-release.yml)), which
+          triggers build/test/publish (see
           [release.yml](../actions/workflows/release.yml))."
