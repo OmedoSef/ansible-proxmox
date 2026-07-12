@@ -12,3 +12,9 @@ releases:
     release_date: '2026-07-12'
   0.1.3:
     release_date: '2026-07-12'
+  0.2.0:
+    modules:
+    - description: Manage Proxmox VE users.
+      name: user
+      namespace: ''
+    release_date: '2026-07-12'

@@ -4,6 +4,14 @@ omedosef.proxmox Release Notes
 
 .. contents:: Topics
 
+v0.2.0
+======
+
+New Modules
+-----------
+
+- omedosef.proxmox.user - Manage Proxmox VE users.
+
 v0.1.3
 ======
 
