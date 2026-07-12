@@ -1,0 +1,171 @@
+---
+- name: Skip user module test when no target host is configured
+  when: proxmox_local_host is not defined
+  block:
+    - name: Explain why this target is being skipped
+      ansible.builtin.debug:
+        msg: >-
+          Skipping: proxmox_local_host is not set in
+          tests/integration/integration_config.yml.
+
+    - name: End the play early
+      ansible.builtin.meta: end_play
+
+# Delegates to the real Proxmox node over SSH, same pattern as
+# version_info_local_auth - see its tasks/main.yml for why. Exercises the
+# full omedosef.proxmox.user lifecycle (create, idempotent no-op, update,
+# password on_create vs always, delete) against real Proxmox VE, cleaning up
+# the test user/group even if an assertion fails partway through.
+- name: Exercise the user module's full lifecycle on the real Proxmox node
+  delegate_to: "{{ proxmox_local_host }}"
+  become: "{{ proxmox_local_become | default(true) }}"
+  vars:
+    ansible_user: "{{ proxmox_local_ssh_user | default('root') }}"
+    ansible_ssh_private_key_file: "{{ proxmox_local_ssh_private_key_file | default(omit) }}"
+    ansible_password: "{{ proxmox_local_ssh_password | default(omit) }}"
+    ansible_python_interpreter: auto_silent
+    test_userid: ansible-test-user@pve
+    test_group: ansible-test-group
+  block:
+    - name: Ensure proxmoxer is importable on the Proxmox node's Python interpreter
+      ansible.builtin.pip:
+        name: proxmoxer
+        state: present
+        extra_args: --break-system-packages
+
+    - name: Ensure the test user does not already exist (leftover from a previous failed run)
+      omedosef.proxmox.user:
+        api_backend: local
+        userid: "{{ test_userid }}"
+        state: absent
+
+    - name: Ensure the test group exists
+      ansible.builtin.command:
+        cmd: pvesh create /access/groups --groupid {{ test_group }}
+      register: group_create
+      failed_when: group_create.rc != 0 and 'already exists' not in group_create.stderr
+      changed_when: group_create.rc == 0
+
+    - name: Create the test user
+      omedosef.proxmox.user:
+        api_backend: local
+        userid: "{{ test_userid }}"
+        password: "Ansible-Test-Passw0rd-1!"
+        comment: "Created by the omedosef.proxmox integration tests"
+        email: ansible-test@example.com
+        firstname: Ansible
+        lastname: Test
+        groups:
+          - "{{ test_group }}"
+      register: created
+
+    - name: Assert the user was created with the requested attributes
+      ansible.builtin.assert:
+        that:
+          - created is changed
+          - created.user.userid == test_userid
+          - created.user.comment == "Created by the omedosef.proxmox integration tests"
+          - created.user.email == "ansible-test@example.com"
+          - created.user.firstname == "Ansible"
+          - created.user.lastname == "Test"
+          - created.user.groups == [test_group]
+
+    - name: Re-run the exact same creation task
+      omedosef.proxmox.user:
+        api_backend: local
+        userid: "{{ test_userid }}"
+        password: "Ansible-Test-Passw0rd-1!"
+        comment: "Created by the omedosef.proxmox integration tests"
+        email: ansible-test@example.com
+        firstname: Ansible
+        lastname: Test
+        groups:
+          - "{{ test_group }}"
+      register: recreated
+
+    - name: Assert re-running the same task is a no-op
+      ansible.builtin.assert:
+        that:
+          - recreated is not changed
+
+    - name: Update only the comment
+      omedosef.proxmox.user:
+        api_backend: local
+        userid: "{{ test_userid }}"
+        comment: "Updated comment"
+      register: updated
+
+    - name: Assert only the comment changed, other fields untouched
+      ansible.builtin.assert:
+        that:
+          - updated is changed
+          - updated.user.comment == "Updated comment"
+          - updated.user.email == "ansible-test@example.com"
+          - updated.user.firstname == "Ansible"
+          - updated.user.groups == [test_group]
+
+    - name: Set the same password again without update_password=always
+      omedosef.proxmox.user:
+        api_backend: local
+        userid: "{{ test_userid }}"
+        password: "Some-Other-Passw0rd-2!"
+      register: password_default
+
+    - name: Assert the password was not touched by default
+      ansible.builtin.assert:
+        that:
+          - password_default is not changed
+
+    - name: Set the password with update_password=always
+      omedosef.proxmox.user:
+        api_backend: local
+        userid: "{{ test_userid }}"
+        password: "Some-Other-Passw0rd-2!"
+        update_password: always
+      register: password_forced
+
+    - name: Assert the password change was applied
+      ansible.builtin.assert:
+        that:
+          - password_forced is changed
+
+    - name: Remove the test user
+      omedosef.proxmox.user:
+        api_backend: local
+        userid: "{{ test_userid }}"
+        state: absent
+      register: deleted
+
+    - name: Assert the user was removed
+      ansible.builtin.assert:
+        that:
+          - deleted is changed
+          - deleted.user is none
+
+    - name: Remove the test user again
+      omedosef.proxmox.user:
+        api_backend: local
+        userid: "{{ test_userid }}"
+        state: absent
+      register: deleted_again
+
+    - name: Assert removing an already-absent user is a no-op
+      ansible.builtin.assert:
+        that:
+          - deleted_again is not changed
+  always:
+    # state=absent is already idempotent (a no-op if the user was never
+    # created or was already removed by the test itself), so no
+    # failed_when/ignore_errors is needed here.
+    - name: Clean up the test user
+      omedosef.proxmox.user:
+        api_backend: local
+        userid: "{{ test_userid }}"
+        state: absent
+
+    - name: Clean up the test group
+      ansible.builtin.command:
+        cmd: pvesh delete /access/groups/{{ test_group }}
+      register: group_delete
+      changed_when: group_delete.rc == 0
+      failed_when: group_delete.rc != 0 and 'does not exist' not in group_delete.stderr
