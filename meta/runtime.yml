@@ -12,3 +12,4 @@ action_groups:
   # proxmox_auth_argument_spec() options to this list.
   proxmox:
     - version_info
+    - user
