@@ -1,0 +1,8 @@
+ancestor: null
+releases:
+  0.1.0:
+    modules:
+    - description: Retrieve Proxmox VE API version information.
+      name: version_info
+      namespace: ''
+    release_date: '2026-07-12'

@@ -1,7 +1,13 @@
-========================
+==============================
 omedosef.proxmox Release Notes
-========================
+==============================
 
 .. contents:: Topics
 
-This changelog describes changes after version 0.1.0.
+v0.1.0
+======
+
+New Modules
+-----------
+
+- omedosef.proxmox.version_info - Retrieve Proxmox VE API version information.
