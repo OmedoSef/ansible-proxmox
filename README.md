@@ -252,6 +252,14 @@ One-time repository setup required for this to work:
 - "Allow GitHub Actions to create pull requests" enabled (Settings → Actions
   → General), needed by `prepare-release.yml`.
 
+## Issues & Support
+
+Bugs and feature requests are tracked on
+[GitHub Issues](https://github.com/OmedoSef/ansible-proxmox/issues) — not on
+Ansible Galaxy. This is also declared in `galaxy.yml`'s `issues:` field,
+which Galaxy surfaces as the collection's "Issue Tracker" link on its own
+page, so it stays correct wherever someone finds this collection.
+
 ## License
 
 GPL-3.0-only. See [LICENSE](LICENSE).

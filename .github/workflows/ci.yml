@@ -12,11 +12,14 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - name: Load shared Python version
+        run: cat .github/python-version.env >> "$GITHUB_ENV"
+
+      - uses: actions/setup-python@v6
         with:
-          python-version: "3.12"
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install dev dependencies
         run: pip install -r requirements-dev.txt
@@ -28,20 +31,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out collection at the expected collection path
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: ansible_collections/omedosef/proxmox
 
-      - uses: actions/setup-python@v5
+      - name: Load shared Python version
+        run: cat ansible_collections/omedosef/proxmox/.github/python-version.env >> "$GITHUB_ENV"
+
+      - uses: actions/setup-python@v6
         with:
-          python-version: "3.12"
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install dev dependencies
         run: pip install -r requirements-dev.txt
         working-directory: ansible_collections/omedosef/proxmox
 
       - name: Run unit tests
-        run: ansible-test units --python 3.12
+        run: ansible-test units --python "${PYTHON_VERSION}"
         working-directory: ansible_collections/omedosef/proxmox
 
   sanity:
@@ -49,17 +55,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out collection at the expected collection path
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: ansible_collections/omedosef/proxmox
 
-      - uses: actions/setup-python@v5
+      - name: Load shared Python version
+        run: cat ansible_collections/omedosef/proxmox/.github/python-version.env >> "$GITHUB_ENV"
+
+      - uses: actions/setup-python@v6
         with:
-          python-version: "3.12"
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install ansible-core
         run: pip install "ansible-core>=2.17"
 
       - name: Run sanity tests
-        run: ansible-test sanity --python 3.12
+        run: ansible-test sanity --python "${PYTHON_VERSION}"
         working-directory: ansible_collections/omedosef/proxmox

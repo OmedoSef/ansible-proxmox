@@ -26,7 +26,10 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+
+      - name: Load shared Python version
+        run: cat .github/python-version.env >> "$GITHUB_ENV"
 
       - name: Derive version from tag
         id: version
@@ -42,9 +45,9 @@ jobs:
             exit 1
           fi
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
-          python-version: "3.12"
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install ansible-core
         run: pip install "ansible-core>=2.17"
@@ -79,7 +82,7 @@ jobs:
             --notes "${{ steps.changelog.outputs.notes }}"
 
       - name: Upload build artifact for the publish job
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: collection-tarball
           path: dist/*.tar.gz
@@ -95,14 +98,19 @@ jobs:
     # specific step even though everything before it is fully automated.
     environment: galaxy-publish
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+
+      - name: Load shared Python version
+        run: cat .github/python-version.env >> "$GITHUB_ENV"
+
+      - uses: actions/download-artifact@v8
         with:
           name: collection-tarball
           path: dist
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
-          python-version: "3.12"
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install ansible-core
         run: pip install "ansible-core>=2.17"
