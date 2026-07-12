@@ -1,0 +1,3 @@
+# Runtime dependencies required by the collection's modules and inventory plugin.
+proxmoxer>=2.0
+requests>=2.31

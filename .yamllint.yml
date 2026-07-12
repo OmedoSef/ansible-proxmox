@@ -1,0 +1,24 @@
+---
+extends: default
+
+rules:
+  line-length:
+    max: 160
+    level: warning
+  truthy:
+    allowed-values: ["true", "false", "yes", "no"]
+  comments-indentation: disable
+  # Match the yamllint expectations baked into ansible-lint's "production"
+  # profile (https://docs.ansible.com/projects/lint/rules/yaml/), otherwise
+  # ansible-lint reports this file as an incompatible custom configuration.
+  comments:
+    min-spaces-from-content: 1
+  braces:
+    max-spaces-inside: 1
+  octal-values:
+    forbid-implicit-octal: true
+    forbid-explicit-octal: true
+
+ignore: |
+  .git/
+  changelogs/changelog.yaml

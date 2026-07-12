@@ -1,0 +1,36 @@
+---
+namespace: omedosef
+name: proxmox
+version: 0.1.0
+readme: README.md
+authors:
+  - Romain VOLPI
+
+description: >-
+  Manage Proxmox VE (QEMU VMs, LXC containers, nodes, cluster, users and
+  permissions) through the Proxmox API, with a companion dynamic inventory
+  plugin.
+
+license:
+  - GPL-3.0-only
+
+repository: https://github.com/OmedoSef/ansible-proxmox
+documentation: https://github.com/OmedoSef/ansible-proxmox
+homepage: https://github.com/OmedoSef/ansible-proxmox
+issues: https://github.com/OmedoSef/ansible-proxmox/issues
+
+tags:
+  - proxmox
+  - proxmoxve
+  - virtualization
+  - infrastructure
+  - cloud
+  - inventory
+
+build_ignore:
+  - .devcontainer
+  - .git
+  - .github
+  - .gitignore
+  - CLAUDE.md
+  - tests/output

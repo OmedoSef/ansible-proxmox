@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Ansible / ansible-test
+*.retry
+tests/output/
+.ansible/
+
+# Collection build artifacts
+*.tar.gz
+
+# Editors / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+
+# Secrets / local config
+.env
+*.local.yml

@@ -1,0 +1,11 @@
+# Development and CI tooling for the omedosef.proxmox Ansible collection.
+# Runtime dependencies for the collection itself live in requirements.txt.
+ansible-core>=2.17
+ansible-lint>=24.0
+yamllint>=1.35
+antsibull-changelog>=0.29
+pytest>=8.0
+pytest-mock>=3.14
+pre-commit>=4.0
+
+-r requirements.txt

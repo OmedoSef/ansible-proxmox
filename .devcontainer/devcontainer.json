@@ -1,0 +1,29 @@
+{
+  "name": "ansible-proxmox",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "remoteEnv": {
+    "ANSIBLE_COLLECTIONS_PATH": "${containerEnv:HOME}/.ansible/collections:/usr/share/ansible/collections"
+  },
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "redhat.ansible",
+        "redhat.vscode-yaml",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "timonwong.shellcheck"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "ansible.python.interpreterPath": "/usr/local/bin/python",
+        "files.eol": "\n",
+        "yaml.format.enable": true
+      }
+    }
+  },
+  "remoteUser": "vscode"
+}
