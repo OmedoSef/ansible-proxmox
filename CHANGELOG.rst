@@ -4,6 +4,9 @@ omedosef.proxmox Release Notes
 
 .. contents:: Topics
 
+v0.1.3
+======
+
 v0.1.2
 ======
 
