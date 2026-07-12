@@ -1,8 +1,11 @@
 ---
 name: Release
 
-# Triggered by pushing a "vX.Y.Z" tag on a commit already prepared by the
-# "Prepare Release" workflow (galaxy.yml bumped, changelog generated). Runs
+# Normally triggered via workflow_dispatch by tag-release.yml right after it
+# pushes a "vX.Y.Z" tag (push-triggered runs from that job's GITHUB_TOKEN are
+# suppressed by GitHub's anti-loop safeguard, so it dispatches this workflow
+# explicitly instead - see tag-release.yml for details). The "push: tags:"
+# trigger below is kept as a fallback for tagging manually. Either way, runs
 # the full test suite, builds the collection, creates a GitHub release, and
 # - after manual approval on the "galaxy-publish" environment - publishes it
 # to Ansible Galaxy.
@@ -11,6 +14,7 @@ on:
   push:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
+  workflow_dispatch:
 
 permissions:
   contents: write

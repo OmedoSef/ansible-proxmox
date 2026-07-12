@@ -3,9 +3,15 @@ name: Tag Release
 
 # Runs automatically when a "release/X.Y.Z" PR (opened by prepare-release.yml)
 # is merged into main: creates and pushes the "vX.Y.Z" tag for that merge
-# commit, which in turn triggers release.yml. Tags can't be created earlier
+# commit, then explicitly triggers release.yml. Tags can't be created earlier
 # than this (e.g. from within prepare-release.yml itself), since the merge
 # commit doesn't exist until a human actually merges the PR.
+#
+# release.yml isn't triggered by the tag push itself: events triggered using
+# the default GITHUB_TOKEN (which this job pushes the tag with) don't create
+# new workflow runs - GitHub's anti-loop safeguard. workflow_dispatch is
+# explicitly exempted from that restriction, so this job dispatches
+# release.yml directly instead of relying on its "push: tags:" trigger.
 #
 # This closes the loop so the only manual steps left in the release process
 # are reviewing/merging the release-prep PR and approving the Galaxy publish.
@@ -17,6 +23,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   tag:
@@ -51,3 +58,9 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag -a "${tag}" -m "Release ${tag}" "${{ github.event.pull_request.merge_commit_sha }}"
           git push origin "${tag}"
+          echo "TAG=${tag}" >> "$GITHUB_ENV"
+
+      - name: Trigger the Release workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run release.yml --ref "${TAG}"
