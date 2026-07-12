@@ -24,7 +24,19 @@ jobs:
       - name: Install dev dependencies
         run: pip install -r requirements-dev.txt
 
-      - uses: pre-commit/action@v3.0.1
+      - name: Cache pre-commit environments
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ env.PYTHON_VERSION }}-${{ hashFiles('.pre-commit-config.yaml') }}
+
+      # Not using pre-commit/action@v3.0.1: it hasn't been updated since
+      # 2024 and still uses Node 20-based actions internally
+      # (actions/cache@v4), which GitHub Actions now flags as deprecated.
+      # This does the same two things it did (cache the pre-commit
+      # environments, run all hooks) without that dependency.
+      - name: Run pre-commit
+        run: pre-commit run --show-diff-on-failure --color=always --all-files
 
   units:
     name: Unit tests
