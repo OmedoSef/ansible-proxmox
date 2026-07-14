@@ -18,6 +18,18 @@ releases:
       name: user
       namespace: ''
     release_date: '2026-07-12'
+  0.2.1:
+    changes:
+      bugfixes:
+      - user - surface a clear, actionable error when setting a password for a non-C(pve)-realm
+        user (for example C(pam)) fails because the underlying system/LDAP/AD account
+        does not exist yet, instead of only the raw Proxmox API error.
+      minor_changes:
+      - user - clarify in the documentation that C(password) is forwarded to the realm's
+        own password mechanism for non-C(pve) realms rather than being ignored.
+    fragments:
+    - user-clearer-password-error.yml
+    release_date: '2026-07-14'
   0.3.0:
     modules:
     - description: Manage Proxmox VE ACL entries.
@@ -32,4 +44,3 @@ releases:
     - description: Manage Proxmox VE API tokens for a user.
       name: user_token
       namespace: ''
-    release_date: '2026-07-14'

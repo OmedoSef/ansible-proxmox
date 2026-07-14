@@ -15,6 +15,19 @@ New Modules
 - omedosef.proxmox.role - Manage Proxmox VE roles.
 - omedosef.proxmox.user_token - Manage Proxmox VE API tokens for a user.
 
+v0.2.1
+======
+
+Minor Changes
+-------------
+
+- user - clarify in the documentation that C(password) is forwarded to the realm's own password mechanism for non-C(pve) realms rather than being ignored.
+
+Bugfixes
+--------
+
+- user - surface a clear, actionable error when setting a password for a non-C(pve)-realm user (for example C(pam)) fails because the underlying system/LDAP/AD account does not exist yet, instead of only the raw Proxmox API error.
+
 v0.2.0
 ======
 

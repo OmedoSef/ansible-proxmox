@@ -7,6 +7,7 @@ from __future__ import annotations
 import pytest
 from ansible_collections.omedosef.proxmox.plugins.modules.user import (
     ProxmoxUserAnsible,
+    _password_failure_hint,
     compute_changes,
     main,
 )
@@ -167,6 +168,76 @@ def test_set_password_calls_password_endpoint(proxmox):
     proxmox.proxmox_api.access.password.put.assert_called_once_with(
         userid="jdoe@pve", password="s3cret"
     )
+
+
+# --- password failure hint ----------------------------------------------
+#
+# Confirmed against a real Proxmox VE instance: creating/changing the
+# password of a non-pve-realm user (e.g. jdoe@pam) fails with exactly this
+# message when the underlying system account doesn't exist yet, and
+# succeeds once it does - Proxmox forwards the password to that realm's own
+# mechanism rather than ignoring it.
+
+
+def test_password_failure_hint_matches_real_proxmox_error():
+    exc = ResourceException(
+        500,
+        "Internal Server Error",
+        "create user failed: change password failed: user 'jdoe' does not exist",
+    )
+
+    hint = _password_failure_hint("jdoe@pam", exc)
+
+    assert hint is not None
+    assert "jdoe@pam" in hint
+    assert "'pam' realm" in hint
+    assert "Create that account first" in hint
+
+
+def test_password_failure_hint_returns_none_for_unrelated_errors():
+    exc = ResourceException(500, "Internal Server Error", "some other failure")
+
+    assert _password_failure_hint("jdoe@pam", exc) is None
+
+
+def test_create_user_reports_password_failure_hint(proxmox):
+    proxmox.proxmox_api.access.users.post.side_effect = ResourceException(
+        500,
+        "Internal Server Error",
+        "create user failed: change password failed: user 'jdoe' does not exist",
+    )
+
+    with pytest.raises(SystemExit):
+        proxmox.create_user("jdoe@pam", {"password": "secret"})
+
+    assert "'pam' realm" in proxmox.module.failed["msg"]
+
+
+def test_create_user_keeps_generic_error_when_no_password_given(proxmox):
+    proxmox.proxmox_api.access.users.post.side_effect = ResourceException(
+        500,
+        "Internal Server Error",
+        "change password failed: user 'jdoe' does not exist",
+    )
+
+    with pytest.raises(SystemExit):
+        proxmox.create_user("jdoe@pam", {"comment": "hi"})
+
+    assert "Failed to create user jdoe@pam" in proxmox.module.failed["msg"]
+    assert "realm" not in proxmox.module.failed["msg"]
+
+
+def test_set_password_reports_password_failure_hint(proxmox):
+    proxmox.proxmox_api.access.password.put.side_effect = ResourceException(
+        500,
+        "Internal Server Error",
+        "change password failed: user 'jdoe' does not exist",
+    )
+
+    with pytest.raises(SystemExit):
+        proxmox.set_password("jdoe@pam", "secret")
+
+    assert "'pam' realm" in proxmox.module.failed["msg"]
 
 
 def test_delete_user_calls_delete(proxmox):

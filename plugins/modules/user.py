@@ -75,9 +75,15 @@ options:
     elements: str
   password:
     description:
-      - Password for the user. Only meaningful for users in the C(pve)
-        realm; other realms (C(pam), LDAP, AD, ...) authenticate externally
-        and ignore this.
+      - Password for the user.
+      - For the C(pve) realm, this is the account's own password, stored by
+        Proxmox itself.
+      - For realms that authenticate externally (C(pam), LDAP, AD, ...),
+        Proxmox forwards this to that realm's own password-change mechanism
+        instead of ignoring it - for C(pam) this changes the underlying
+        system account's password. This fails if the underlying account
+        does not already exist yet; create it first (this module only
+        manages the Proxmox-side user record, not system/LDAP/AD accounts).
       - Proxmox never returns the current password, so this module cannot
         detect drift in it. It is always applied when creating a new user.
         For an existing user, it is only applied when
@@ -201,6 +207,29 @@ def compute_changes(current, desired):
     )
 
 
+def _password_failure_hint(userid, exc):
+    """Explain Proxmox's "change password failed" error in terms a user can
+    act on, rather than the raw one-liner.
+
+    Only the pve realm stores a Proxmox-managed password; other realms (pam,
+    LDAP, AD, ...) authenticate externally and require the underlying
+    account to already exist before Proxmox can set anything for it.
+    Confirmed against a real Proxmox VE instance: creating/updating a
+    password for a non-pve user fails with this exact message when the
+    underlying account is missing, and succeeds once it exists.
+    """
+    if "change password failed" not in str(exc).lower():
+        return None
+    realm = userid.rsplit("@", 1)[-1] if "@" in userid else "?"
+    return (
+        f"Proxmox could not set a password for {userid}: the '{realm}' realm "
+        "authenticates externally (PAM, LDAP, AD, ...) and requires the "
+        "underlying account to already exist before Proxmox can manage its "
+        f"password. Create that account first, or omit `password` to only "
+        f"manage the Proxmox-side user record. Original error: {exc}"
+    )
+
+
 class ProxmoxUserAnsible(ProxmoxAnsible):
     def get_user(self, userid):
         try:
@@ -219,7 +248,10 @@ class ProxmoxUserAnsible(ProxmoxAnsible):
         try:
             self.proxmox_api.access.users.post(userid=userid, **payload)
         except ResourceException as exc:
-            self.module.fail_json(msg=f"Failed to create user {userid}: {exc}")
+            hint = (
+                _password_failure_hint(userid, exc) if "password" in payload else None
+            )
+            self.module.fail_json(msg=hint or f"Failed to create user {userid}: {exc}")
 
     def update_user(self, userid, changes):
         payload = self._prepare_payload(changes)
@@ -232,8 +264,9 @@ class ProxmoxUserAnsible(ProxmoxAnsible):
         try:
             self.proxmox_api.access.password.put(userid=userid, password=password)
         except ResourceException as exc:
+            hint = _password_failure_hint(userid, exc)
             self.module.fail_json(
-                msg=f"Failed to set the password for user {userid}: {exc}"
+                msg=hint or f"Failed to set the password for user {userid}: {exc}"
             )
 
     def delete_user(self, userid):
