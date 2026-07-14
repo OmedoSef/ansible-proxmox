@@ -18,3 +18,18 @@ releases:
       name: user
       namespace: ''
     release_date: '2026-07-12'
+  0.3.0:
+    modules:
+    - description: Manage Proxmox VE ACL entries.
+      name: acl
+      namespace: ''
+    - description: Manage Proxmox VE groups.
+      name: group
+      namespace: ''
+    - description: Manage Proxmox VE roles.
+      name: role
+      namespace: ''
+    - description: Manage Proxmox VE API tokens for a user.
+      name: user_token
+      namespace: ''
+    release_date: '2026-07-14'
