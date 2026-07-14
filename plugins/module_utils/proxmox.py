@@ -184,3 +184,26 @@ class ProxmoxAnsible:
         actually specified rather than clobbering the rest with nulls.
         """
         return {key: value for key, value in params.items() if value is not None}
+
+    @staticmethod
+    def compute_changes(current, desired, fields, normalize=None):
+        """Return only the fields that differ, keyed by field name -> desired raw value.
+
+        Fields left unset (None) in desired are skipped, so callers only
+        compare/apply what the user actually specified. normalize(field,
+        value), when given, lets a caller reconcile representations that
+        differ between the API and the module's own input (int vs bool,
+        comma string vs list, unordered list, ...) before comparing.
+        """
+        if normalize is None:
+
+            def normalize(field, value):
+                return value
+
+        changes = {}
+        for field in fields:
+            if desired.get(field) is None:
+                continue
+            if normalize(field, current.get(field)) != normalize(field, desired[field]):
+                changes[field] = desired[field]
+        return changes

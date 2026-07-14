@@ -88,14 +88,7 @@ COMPARABLE_FIELDS = ("comment",)
 
 
 def compute_changes(current, desired):
-    """Return only the fields that differ, keyed by field name -> desired raw value."""
-    changes = {}
-    for field in COMPARABLE_FIELDS:
-        if desired.get(field) is None:
-            continue
-        if current.get(field) != desired[field]:
-            changes[field] = desired[field]
-    return changes
+    return ProxmoxAnsible.compute_changes(current, desired, COMPARABLE_FIELDS)
 
 
 class ProxmoxGroupAnsible(ProxmoxAnsible):
