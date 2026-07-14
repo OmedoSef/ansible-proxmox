@@ -177,3 +177,10 @@ class ProxmoxAnsible:
         # connection (normal inventory + become), rather than reaching a
         # remote node from the control node.
         return {"sudo": params["api_sudo"]}
+
+    @staticmethod
+    def _filter_none_values(params):
+        """Drop unset (None) entries, so callers only send fields the user
+        actually specified rather than clobbering the rest with nulls.
+        """
+        return {key: value for key, value in params.items() if value is not None}
