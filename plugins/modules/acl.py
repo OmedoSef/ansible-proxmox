@@ -12,12 +12,12 @@ short_description: Manage Proxmox VE ACL entries
 description:
   - Grant or revoke Proxmox VE roles for a user, group, or token on a given
     path (C(/access/acl)).
-  - Unlike M(omedosef.proxmox.role) privileges or M(omedosef.proxmox.user)
-    group membership, an ACL entry is not a single resource identified by one
-    ID - the same path/user/group/token combination can hold several
-    independent role grants at once. This module therefore only ever touches
-    the exact roles listed in O(roles); any other role already granted on the
-    same O(path)/O(type)/O(ugid) is left untouched.
+  - Unlike C(role) privileges or C(user) group membership, an ACL entry is
+    not a single resource identified by one ID - the same
+    path/user/group/token combination can hold several independent role
+    grants at once. This module therefore only ever touches the exact roles
+    listed in O(roles); any other role already granted on the same
+    O(path)/O(type)/O(ugid) is left untouched.
 version_added: "0.3.0"
 author:
   - Romain VOLPI (@OmedoSef)

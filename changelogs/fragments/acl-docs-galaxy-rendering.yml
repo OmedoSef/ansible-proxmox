@@ -1,0 +1,4 @@
+bugfixes:
+  - "acl - drop the M() cross-module references in the description, the only place in the
+    collection using that macro, since it was suspected of breaking documentation
+    rendering on the Galaxy website; replaced with plain C() text."
