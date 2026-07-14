@@ -1,0 +1,111 @@
+---
+- name: Skip group module test when no target host is configured
+  when: proxmox_local_host is not defined
+  block:
+    - name: Explain why this target is being skipped
+      ansible.builtin.debug:
+        msg: >-
+          Skipping: proxmox_local_host is not set in
+          tests/integration/integration_config.yml.
+
+    - name: End the play early
+      ansible.builtin.meta: end_play
+
+# Delegates to the real Proxmox node over SSH, same pattern as
+# version_info_local_auth/user - see their tasks/main.yml for why. Exercises
+# the full omedosef.proxmox.group lifecycle (create, idempotent no-op,
+# update, delete) against real Proxmox VE, cleaning up the test group even
+# if an assertion fails partway through.
+- name: Exercise the group module's full lifecycle on the real Proxmox node
+  delegate_to: "{{ proxmox_local_host }}"
+  become: "{{ proxmox_local_become | default(true) }}"
+  vars:
+    ansible_user: "{{ proxmox_local_ssh_user | default('root') }}"
+    ansible_ssh_private_key_file: "{{ proxmox_local_ssh_private_key_file | default(omit) }}"
+    ansible_password: "{{ proxmox_local_ssh_password | default(omit) }}"
+    ansible_python_interpreter: auto_silent
+    test_groupid: ansible-test-group2
+  block:
+    - name: Ensure proxmoxer is importable on the Proxmox node's Python interpreter
+      ansible.builtin.pip:
+        name: proxmoxer
+        state: present
+        extra_args: --break-system-packages
+
+    - name: Ensure the test group does not already exist (leftover from a previous failed run)
+      omedosef.proxmox.group:
+        api_backend: local
+        groupid: "{{ test_groupid }}"
+        state: absent
+
+    - name: Create the test group
+      omedosef.proxmox.group:
+        api_backend: local
+        groupid: "{{ test_groupid }}"
+        comment: "Created by the omedosef.proxmox integration tests"
+      register: created
+
+    - name: Assert the group was created with the requested attributes
+      ansible.builtin.assert:
+        that:
+          - created is changed
+          - created.group.groupid == test_groupid
+          - created.group.comment == "Created by the omedosef.proxmox integration tests"
+
+    - name: Re-run the exact same creation task
+      omedosef.proxmox.group:
+        api_backend: local
+        groupid: "{{ test_groupid }}"
+        comment: "Created by the omedosef.proxmox integration tests"
+      register: recreated
+
+    - name: Assert re-running the same task is a no-op
+      ansible.builtin.assert:
+        that:
+          - recreated is not changed
+
+    - name: Update only the comment
+      omedosef.proxmox.group:
+        api_backend: local
+        groupid: "{{ test_groupid }}"
+        comment: "Updated comment"
+      register: updated
+
+    - name: Assert the comment changed
+      ansible.builtin.assert:
+        that:
+          - updated is changed
+          - updated.group.comment == "Updated comment"
+
+    - name: Remove the test group
+      omedosef.proxmox.group:
+        api_backend: local
+        groupid: "{{ test_groupid }}"
+        state: absent
+      register: deleted
+
+    - name: Assert the group was removed
+      ansible.builtin.assert:
+        that:
+          - deleted is changed
+          - deleted.group is none
+
+    - name: Remove the test group again
+      omedosef.proxmox.group:
+        api_backend: local
+        groupid: "{{ test_groupid }}"
+        state: absent
+      register: deleted_again
+
+    - name: Assert removing an already-absent group is a no-op
+      ansible.builtin.assert:
+        that:
+          - deleted_again is not changed
+  always:
+    # state=absent is already idempotent, so no failed_when/ignore_errors is
+    # needed here.
+    - name: Clean up the test group
+      omedosef.proxmox.group:
+        api_backend: local
+        groupid: "{{ test_groupid }}"
+        state: absent

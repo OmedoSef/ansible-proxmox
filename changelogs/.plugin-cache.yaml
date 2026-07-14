@@ -11,11 +11,31 @@ plugins:
   inventory: {}
   lookup: {}
   module:
+    acl:
+      description: Manage Proxmox VE ACL entries
+      name: acl
+      namespace: ''
+      version_added: 0.3.0
+    group:
+      description: Manage Proxmox VE groups
+      name: group
+      namespace: ''
+      version_added: 0.3.0
+    role:
+      description: Manage Proxmox VE roles
+      name: role
+      namespace: ''
+      version_added: 0.3.0
     user:
       description: Manage Proxmox VE users
       name: user
       namespace: ''
       version_added: 0.2.0
+    user_token:
+      description: Manage Proxmox VE API tokens for a user
+      name: user_token
+      namespace: ''
+      version_added: 0.3.0
     version_info:
       description: Retrieve Proxmox VE API version information
       name: version_info
@@ -26,4 +46,4 @@ plugins:
   strategy: {}
   test: {}
   vars: {}
-version: 0.2.1
+version: 0.3.0

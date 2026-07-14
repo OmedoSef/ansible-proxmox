@@ -202,14 +202,9 @@ def _normalize(field, value):
 
 
 def compute_changes(current, desired):
-    """Return only the fields that differ, keyed by field name -> desired raw value."""
-    changes = {}
-    for field in COMPARABLE_FIELDS:
-        if desired.get(field) is None:
-            continue
-        if _normalize(field, current.get(field)) != _normalize(field, desired[field]):
-            changes[field] = desired[field]
-    return changes
+    return ProxmoxAnsible.compute_changes(
+        current, desired, COMPARABLE_FIELDS, _normalize
+    )
 
 
 def _password_failure_hint(userid, exc):
@@ -280,9 +275,9 @@ class ProxmoxUserAnsible(ProxmoxAnsible):
         except ResourceException as exc:
             self.module.fail_json(msg=f"Failed to delete user {userid}: {exc}")
 
-    @staticmethod
-    def _prepare_payload(params):
-        payload = {key: value for key, value in params.items() if value is not None}
+    @classmethod
+    def _prepare_payload(cls, params):
+        payload = cls._filter_none_values(params)
         if "groups" in payload:
             payload["groups"] = ",".join(payload["groups"])
         return payload

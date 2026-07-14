@@ -4,6 +4,17 @@ omedosef.proxmox Release Notes
 
 .. contents:: Topics
 
+v0.3.0
+======
+
+New Modules
+-----------
+
+- omedosef.proxmox.acl - Manage Proxmox VE ACL entries.
+- omedosef.proxmox.group - Manage Proxmox VE groups.
+- omedosef.proxmox.role - Manage Proxmox VE roles.
+- omedosef.proxmox.user_token - Manage Proxmox VE API tokens for a user.
+
 v0.2.1
 ======
 
