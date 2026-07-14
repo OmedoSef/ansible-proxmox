@@ -16,3 +16,4 @@ action_groups:
     - group
     - user_token
     - role
+    - acl

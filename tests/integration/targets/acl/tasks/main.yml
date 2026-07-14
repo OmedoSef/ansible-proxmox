@@ -1,0 +1,205 @@
+---
+- name: Skip acl module test when no target host is configured
+  when: proxmox_local_host is not defined
+  block:
+    - name: Explain why this target is being skipped
+      ansible.builtin.debug:
+        msg: >-
+          Skipping: proxmox_local_host is not set in
+          tests/integration/integration_config.yml.
+
+    - name: End the play early
+      ansible.builtin.meta: end_play
+
+# Delegates to the real Proxmox node over SSH, same pattern as
+# version_info_local_auth/user/group/role - see their tasks/main.yml for why.
+# Exercises the full omedosef.proxmox.acl lifecycle (grant, idempotent
+# no-op, propagate change, additive second role, partial revoke, full
+# revoke) against real Proxmox VE, cleaning up the test user/role/ACL even
+# if an assertion fails partway through.
+- name: Exercise the acl module's full lifecycle on the real Proxmox node
+  delegate_to: "{{ proxmox_local_host }}"
+  become: "{{ proxmox_local_become | default(true) }}"
+  vars:
+    ansible_user: "{{ proxmox_local_ssh_user | default('root') }}"
+    ansible_ssh_private_key_file: "{{ proxmox_local_ssh_private_key_file | default(omit) }}"
+    ansible_password: "{{ proxmox_local_ssh_password | default(omit) }}"
+    ansible_python_interpreter: auto_silent
+    test_userid: ansible-test-acl-user@pve
+    test_roleid: ansible-test-acl-role
+    test_path: /vms/100
+  block:
+    - name: Ensure proxmoxer is importable on the Proxmox node's Python interpreter
+      ansible.builtin.pip:
+        name: proxmoxer
+        state: present
+        extra_args: --break-system-packages
+
+    - name: Ensure the test ACL entry does not already exist (leftover from a previous failed run)
+      omedosef.proxmox.acl:
+        api_backend: local
+        path: "{{ test_path }}"
+        type: user
+        ugid: "{{ test_userid }}"
+        roles:
+          - "{{ test_roleid }}"
+          - PVEAuditor
+        state: absent
+
+    - name: Ensure the test user exists
+      omedosef.proxmox.user:
+        api_backend: local
+        userid: "{{ test_userid }}"
+        password: "Ansible-Test-Passw0rd-1!"
+
+    - name: Ensure the test role exists
+      omedosef.proxmox.role:
+        api_backend: local
+        roleid: "{{ test_roleid }}"
+        privs:
+          - VM.Audit
+
+    - name: Grant the test role to the test user on the test path
+      omedosef.proxmox.acl:
+        api_backend: local
+        path: "{{ test_path }}"
+        type: user
+        ugid: "{{ test_userid }}"
+        roles:
+          - "{{ test_roleid }}"
+      register: granted
+
+    - name: Assert the role was granted with propagate true
+      ansible.builtin.assert:
+        that:
+          - granted is changed
+          - granted.acl.path == test_path
+          - granted.acl.type == "user"
+          - granted.acl.ugid == test_userid
+          - "granted.acl.roles == [{'roleid': test_roleid, 'propagate': true}]"
+
+    - name: Re-run the exact same grant
+      omedosef.proxmox.acl:
+        api_backend: local
+        path: "{{ test_path }}"
+        type: user
+        ugid: "{{ test_userid }}"
+        roles:
+          - "{{ test_roleid }}"
+      register: regranted
+
+    - name: Assert re-running the same grant is a no-op
+      ansible.builtin.assert:
+        that:
+          - regranted is not changed
+
+    - name: Re-grant the same role with propagate false
+      omedosef.proxmox.acl:
+        api_backend: local
+        path: "{{ test_path }}"
+        type: user
+        ugid: "{{ test_userid }}"
+        roles:
+          - "{{ test_roleid }}"
+        propagate: false
+      register: propagate_changed
+
+    - name: Assert changing propagate is reported as changed
+      ansible.builtin.assert:
+        that:
+          - propagate_changed is changed
+          - "propagate_changed.acl.roles == [{'roleid': test_roleid, 'propagate': false}]"
+
+    - name: Grant a second, built-in role on the same path/user
+      omedosef.proxmox.acl:
+        api_backend: local
+        path: "{{ test_path }}"
+        type: user
+        ugid: "{{ test_userid }}"
+        roles:
+          - PVEAuditor
+      register: second_role
+
+    - name: Assert both roles are now present, in sorted order
+      ansible.builtin.assert:
+        that:
+          - second_role is changed
+          - >-
+              second_role.acl.roles == [
+              {'roleid': 'PVEAuditor', 'propagate': true},
+              {'roleid': test_roleid, 'propagate': false}]
+
+    - name: Revoke only the built-in role
+      omedosef.proxmox.acl:
+        api_backend: local
+        path: "{{ test_path }}"
+        type: user
+        ugid: "{{ test_userid }}"
+        roles:
+          - PVEAuditor
+        state: absent
+      register: revoked_one
+
+    - name: Assert the other role is left untouched
+      ansible.builtin.assert:
+        that:
+          - revoked_one is changed
+          - "revoked_one.acl.roles == [{'roleid': test_roleid, 'propagate': false}]"
+
+    - name: Revoke the remaining role
+      omedosef.proxmox.acl:
+        api_backend: local
+        path: "{{ test_path }}"
+        type: user
+        ugid: "{{ test_userid }}"
+        roles:
+          - "{{ test_roleid }}"
+        state: absent
+      register: revoked_all
+
+    - name: Assert no roles remain for this path/user
+      ansible.builtin.assert:
+        that:
+          - revoked_all is changed
+          - revoked_all.acl.roles == []
+
+    - name: Revoke again
+      omedosef.proxmox.acl:
+        api_backend: local
+        path: "{{ test_path }}"
+        type: user
+        ugid: "{{ test_userid }}"
+        roles:
+          - "{{ test_roleid }}"
+        state: absent
+      register: revoked_again
+
+    - name: Assert revoking an already-absent role is a no-op
+      ansible.builtin.assert:
+        that:
+          - revoked_again is not changed
+  always:
+    # state=absent is already idempotent, so no failed_when/ignore_errors is
+    # needed here.
+    - name: Clean up the test ACL entry
+      omedosef.proxmox.acl:
+        api_backend: local
+        path: "{{ test_path }}"
+        type: user
+        ugid: "{{ test_userid }}"
+        roles:
+          - "{{ test_roleid }}"
+          - PVEAuditor
+        state: absent
+
+    - name: Clean up the test role
+      omedosef.proxmox.role:
+        api_backend: local
+        roleid: "{{ test_roleid }}"
+        state: absent
+
+    - name: Clean up the test user
+      omedosef.proxmox.user:
+        api_backend: local
+        userid: "{{ test_userid }}"
+        state: absent
