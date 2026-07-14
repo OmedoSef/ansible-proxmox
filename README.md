@@ -27,15 +27,15 @@ pip install -r ~/.ansible/collections/ansible_collections/omedosef/proxmox/requi
 Every module in this collection shares the same `api_backend` option to reach
 a Proxmox VE node:
 
-- **`local`** (recommended when possible) — runs `pvesh` directly on the
-  current host. No `api_host`, `api_user`, or credentials needed at all: use
-  this when the play already targets the Proxmox node itself through
+- **`local`** (default, recommended when possible) — runs `pvesh` directly on
+  the current host. No `api_host`, `api_user`, or credentials needed at all:
+  use this when the play already targets the Proxmox node itself through
   Ansible's normal connection (inventory, `ansible_user`, SSH keys, `become`).
   Even though it never makes an HTTP call, the module still imports
   `proxmoxer`, so that package must be installed on **the Proxmox node's own
   Python interpreter** (not the control node) - see the `pip` pre-task in
   [playbooks/examples/version_info_local.yml](playbooks/examples/version_info_local.yml).
-- **`https`** (default) — calls the REST API of a remote node directly, with
+- **`https`** — calls the REST API of a remote node directly, with
   `api_password` or an `api_token_id`/`api_token_secret` pair. Use this when
   driving a Proxmox node from a play targeting something else (typically
   `localhost`).

@@ -1,6 +1,7 @@
 ---
 - name: Retrieve the Proxmox VE version using password authentication
   omedosef.proxmox.version_info:
+    api_backend: https
     api_host: "{{ proxmox_api_host }}"
     api_port: "{{ proxmox_api_port | default(8006) }}"
     api_user: "{{ proxmox_api_user }}"

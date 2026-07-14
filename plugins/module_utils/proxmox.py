@@ -54,7 +54,7 @@ def proxmox_auth_argument_spec():
         api_backend=dict(
             type="str",
             choices=["https", "ssh_paramiko", "local"],
-            default="https",
+            default="local",
             fallback=(env_fallback, ["PROXMOX_API_BACKEND"]),
         ),
         api_user=dict(type="str", fallback=(env_fallback, ["PROXMOX_API_USER"])),

@@ -62,7 +62,7 @@ def test_proxmox_auth_argument_spec_contains_expected_keys():
     assert spec["api_password"]["no_log"] is True
     assert spec["api_token_secret"]["no_log"] is True
     assert spec["api_backend"]["choices"] == ["https", "ssh_paramiko", "local"]
-    assert spec["api_backend"]["default"] == "https"
+    assert spec["api_backend"]["default"] == "local"
     assert spec["api_sudo"]["default"] is False
     assert "default" not in spec["api_port"]
 

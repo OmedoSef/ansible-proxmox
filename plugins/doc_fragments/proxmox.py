@@ -42,7 +42,7 @@ options:
       - Falls back to the E(PROXMOX_API_BACKEND) environment variable.
     type: str
     choices: [https, ssh_paramiko, local]
-    default: https
+    default: local
   api_user:
     description:
       - Proxmox VE user, in the C(user@realm) format (for example C(root@pam)).
