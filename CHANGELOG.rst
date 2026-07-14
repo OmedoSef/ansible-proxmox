@@ -4,6 +4,19 @@ omedosef.proxmox Release Notes
 
 .. contents:: Topics
 
+v0.4.0
+======
+
+Breaking Changes / Porting Guide
+--------------------------------
+
+- all modules - C(api_backend) now defaults to C(local) instead of C(https), since running C(pvesh) on a Proxmox node the play already targets is the recommended pattern and needs no C(api_host), C(api_user), or credentials at all. Playbooks relying on the previous implicit C(https) default must now set C(api_backend=https) explicitly.
+
+Bugfixes
+--------
+
+- acl - drop the M() cross-module references in the description, the only place in the collection using that macro, since it was suspected of breaking documentation rendering on the Galaxy website; replaced with plain C() text.
+
 v0.3.0
 ======
 

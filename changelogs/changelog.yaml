@@ -44,3 +44,19 @@ releases:
     - description: Manage Proxmox VE API tokens for a user.
       name: user_token
       namespace: ''
+  0.4.0:
+    changes:
+      breaking_changes:
+      - all modules - C(api_backend) now defaults to C(local) instead of C(https),
+        since running C(pvesh) on a Proxmox node the play already targets is the recommended
+        pattern and needs no C(api_host), C(api_user), or credentials at all. Playbooks
+        relying on the previous implicit C(https) default must now set C(api_backend=https)
+        explicitly.
+      bugfixes:
+      - acl - drop the M() cross-module references in the description, the only place
+        in the collection using that macro, since it was suspected of breaking documentation
+        rendering on the Galaxy website; replaced with plain C() text.
+    fragments:
+    - acl-docs-galaxy-rendering.yml
+    - api-backend-default-local.yml
+    release_date: '2026-07-14'
