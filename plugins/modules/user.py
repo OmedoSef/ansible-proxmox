@@ -247,9 +247,9 @@ class ProxmoxUserAnsible(ProxmoxAnsible):
         except ResourceException as exc:
             self.module.fail_json(msg=f"Failed to delete user {userid}: {exc}")
 
-    @staticmethod
-    def _prepare_payload(params):
-        payload = {key: value for key, value in params.items() if value is not None}
+    @classmethod
+    def _prepare_payload(cls, params):
+        payload = cls._filter_none_values(params)
         if "groups" in payload:
             payload["groups"] = ",".join(payload["groups"])
         return payload

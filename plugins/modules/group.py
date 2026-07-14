@@ -112,14 +112,14 @@ class ProxmoxGroupAnsible(ProxmoxAnsible):
         return group
 
     def create_group(self, groupid, params):
-        payload = self._prepare_payload(params)
+        payload = self._filter_none_values(params)
         try:
             self.proxmox_api.access.groups.post(groupid=groupid, **payload)
         except ResourceException as exc:
             self.module.fail_json(msg=f"Failed to create group {groupid}: {exc}")
 
     def update_group(self, groupid, changes):
-        payload = self._prepare_payload(changes)
+        payload = self._filter_none_values(changes)
         try:
             self.proxmox_api.access.groups(groupid).put(**payload)
         except ResourceException as exc:
@@ -130,11 +130,6 @@ class ProxmoxGroupAnsible(ProxmoxAnsible):
             self.proxmox_api.access.groups(groupid).delete()
         except ResourceException as exc:
             self.module.fail_json(msg=f"Failed to delete group {groupid}: {exc}")
-
-    @staticmethod
-    def _prepare_payload(params):
-        payload = {key: value for key, value in params.items() if value is not None}
-        return payload
 
 
 def main():
