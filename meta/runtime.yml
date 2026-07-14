@@ -13,3 +13,4 @@ action_groups:
   proxmox:
     - version_info
     - user
+    - group
