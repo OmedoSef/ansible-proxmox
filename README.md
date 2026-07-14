@@ -93,6 +93,7 @@ Precedence (highest to lowest): the task's own arguments, then
 | Module    | [user](plugins/modules/user.py) | Manage Proxmox VE users (create/update/delete, idempotent) |
 | Module    | [group](plugins/modules/group.py) | Manage Proxmox VE groups (create/update/delete, idempotent) |
 | Module    | [user_token](plugins/modules/user_token.py) | Manage Proxmox VE API tokens for a user (create/update/delete/regenerate, idempotent) |
+| Module    | [role](plugins/modules/role.py) | Manage Proxmox VE roles (create/update/delete, idempotent) |
 | Module    | _tbd_ | QEMU VM management (not implemented yet) |
 | Module    | _tbd_ | LXC container management (not implemented yet) |
 | Inventory | _tbd_ | Dynamic inventory plugin for Proxmox VE (not implemented yet) |
@@ -102,7 +103,7 @@ Precedence (highest to lowest): the task's own arguments, then
 Development proceeds incrementally, one functional area at a time:
 
 1. ~~First module (`version_info`) to validate the API auth pattern~~
-2. User / permission modules (`user`, `group`, `user_token` done; roles/ACLs next)
+2. User / permission modules (`user`, `group`, `user_token`, `role` done; ACLs next)
 3. QEMU VM modules
 4. LXC container modules
 5. Node / cluster modules
